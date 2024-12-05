@@ -1,12 +1,12 @@
 package br.com.unifacef.ijb.services;
 
 
+import br.com.unifacef.ijb.helpers.UserInfoHelper;
 import br.com.unifacef.ijb.mappers.*;
 import br.com.unifacef.ijb.models.dtos.*;
-import br.com.unifacef.ijb.models.entities.Familiar;
 import br.com.unifacef.ijb.models.entities.UserInfo;
+import br.com.unifacef.ijb.models.enums.Role;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.jpa.repository.query.Meta;
 import org.springframework.stereotype.Service;
 
 import br.com.unifacef.ijb.helpers.OptionalHelper;
@@ -15,8 +15,8 @@ import br.com.unifacef.ijb.models.enums.BeneficiaryStatus;
 import br.com.unifacef.ijb.repositories.BeneficiaryRepository;
 import jakarta.transaction.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Dictionary;
 import java.util.List;
 
 @Service
@@ -27,6 +27,10 @@ public class BeneficiaryService {
     private FamiliarService familiarService;
     @Autowired
     private UserService userService;
+    @Autowired
+    private AuthorityService authorityService;
+    @Autowired
+    private UserInfoService userInfoService;
 
     public Beneficiary save(Beneficiary beneficiary){
         return repository.save(beneficiary);
@@ -38,11 +42,21 @@ public class BeneficiaryService {
 
     // ----------------------------------------------------------------
 
-    @Transactional
-    public BeneficiaryDTO createBeneficiary(BeneficiaryDTO beneficiaryDTO){
-        Beneficiary beneficiary = BeneficiaryMapper.convertBeneficiaryDTOIntoBeneficiary(beneficiaryDTO);
-       
-        return BeneficiaryMapper.convertBeneficiaryIntoBeneficiaryDTO(save(beneficiary));
+    public Beneficiary registerBeneficiary(BeneficiaryRegisterDTO beneficiaryRegister) {
+        AuthorityDTO authorityDTO = authorityService.findAuthorityRole(Role.ROLE_BENEFICIARIO);
+        UserInfoCreateDTO userInfoCreateDTO = UserInfoHelper.setUpUserInfoCreateDTO(authorityDTO, beneficiaryRegister);
+        UserInfo userInfo = userInfoService.createUserInfo(userInfoCreateDTO);
+
+        Beneficiary beneficiary = new Beneficiary();
+        beneficiary.setUser(userInfo.getUser());
+        beneficiary.setName(beneficiaryRegister.getName() + " " + beneficiaryRegister.getLastName());
+        beneficiary.setCreatedAt(LocalDateTime.now());
+        beneficiary.setUpdatedAt(LocalDateTime.now());
+        beneficiary.setIndicationDate(LocalDateTime.now());
+        beneficiary.setMeetDescription("Whatsapp");
+
+
+        return save(beneficiary);
     }
 
 
@@ -80,6 +94,7 @@ public class BeneficiaryService {
 
         return benficiaryPlusFamiliarsDTO;
     }
+
 
 
 
